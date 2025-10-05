@@ -10,10 +10,36 @@ import { sendMail } from '../mailer/mailer';
 
 interface PDFRequestBody {
     clientName: string;
-    signature?: string; // base64 string
+    clientId?: string;
+    clientPhone?: string;
+    clientLocation?: string;
+    clientBirthday?: string;
+    treatmentIntensity?: string;
+    focusArea?: string;
+    heartIssues?: string;
+    heartIssuesText?: string;
+    spineProblems?: string;
+    spineProblemsText?: string;
+    fracturesOrSprains?: string;
+    fracturesOrSprainsText?: string;
+    fluOrFever?: string;
+    fluOrFeverText?: string;
+    epilepsy?: string;
+    pregnant?: string;
+    pregnantText?: string;
+    recentSurgery?: string;
+    recentSurgeryText?: string;
+    chronicMedication?: string;
+    chronicMedicationText?: string;
+    otherPhysicalProblems?: string;
+    otherPhysicalProblemsText?: string;
+    fungus?: string;
+    fungusText?: string;
+    painfulAreas?: string;
+    painfulAreasText?: string;
+    declaration?: string;
+    signature?: string;
     sendToSan?: string;
-    // add other fields here
-    [key: string]: any;
 }
 
 @injectable()
@@ -33,83 +59,183 @@ export class PDFFileController extends BaseController<PDFFileService> {
         try {
             const data = req.body;
 
-            // Generate PDF filename
             const now = new Date();
             const fileNameDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
             const fileName = `${data.clientName}_${fileNameDate}.pdf`;
-            const safeFileName = encodeURIComponent(
-                `${data.clientName}_${fileNameDate}.pdf`,
-            );
             const pdfPath = path.join(
                 appConfig.PDFFILE_WITH_PUBLIC_PATH,
-                safeFileName,
+                fileName,
             );
 
-            // Create PDF
             const doc = new PDFDocument({ margin: 25, size: 'A4' });
-            doc.font(path.join(__dirname, '../fonts/DavidLibre-Regular.ttf'));
-            doc.text('הצהרת בריאות לקבלת עיסוי', { align: 'right' });
-
             const writeStream = fs.createWriteStream(pdfPath);
             doc.pipe(writeStream);
+
+            // Register Hebrew font
+            const fontPath = path.join(
+                __dirname,
+                '../fonts/DavidLibre-Regular.ttf',
+            );
+            doc.registerFont('David', fontPath);
+            doc.font('David');
 
             // Title
             doc.fontSize(18).text('הצהרת בריאות לקבלת עיסוי', {
                 align: 'center',
             });
             doc.moveDown(0.5);
-            doc.fontSize(12).text('השאלון סודי וישמש למטרת הטיפול בלבד', {
+            doc.fontSize(12).text(
+                'השאלון הינו סודי בהחלט וישמש למטרת הטיפול וקידום צרכי המטופל בלבד',
+                { align: 'center' },
+            );
+            doc.moveDown(0.5);
+            doc.text('בעיות רפואיות מיוחדות - האם את/ה סובל/ת מ...', {
                 align: 'center',
             });
             doc.moveDown(1);
 
-            // Client info
-            doc.fontSize(14).text(`שם המטופל: ${data.clientName}`);
-            doc.moveDown(0.5);
+            // Health questions
+            doc.fontSize(14).text('שאלות בריאות', { align: 'right' });
+            const questions = [
+                {
+                    label: 'מחלת לב:',
+                    value: data.heartIssues,
+                    extra: data.heartIssuesText,
+                },
+                {
+                    label: 'בעיות עמוד שדרה:',
+                    value: data.spineProblems,
+                    extra: data.spineProblemsText,
+                },
+                {
+                    label: 'שברים/נקעים:',
+                    value: data.fracturesOrSprains,
+                    extra: data.fracturesOrSprainsText,
+                },
+                {
+                    label: 'שפעת/דלקת:',
+                    value: data.fluOrFever,
+                    extra: data.fluOrFeverText,
+                },
+                { label: 'אפילפסיה:', value: data.epilepsy },
+                {
+                    label: 'הריון:',
+                    value: data.pregnant,
+                    extra: data.pregnantText,
+                },
+                {
+                    label: 'ניתוח אחרון:',
+                    value: data.recentSurgery,
+                    extra: data.recentSurgeryText,
+                },
+                {
+                    label: 'תרופות כרוניות:',
+                    value: data.chronicMedication,
+                    extra: data.chronicMedicationText,
+                },
+                {
+                    label: 'בעיות גופניות אחרות:',
+                    value: data.otherPhysicalProblems,
+                    extra: data.otherPhysicalProblemsText,
+                },
+                {
+                    label: 'פטריות:',
+                    value: data.fungus,
+                    extra: data.fungusText,
+                },
+                {
+                    label: 'אזורים כואבים:',
+                    value: data.painfulAreas,
+                    extra: data.painfulAreasText,
+                },
+            ];
 
-            // Add other fields dynamically
-            Object.keys(data).forEach((key) => {
-                if (!['clientName', 'signature', 'sendToSan'].includes(key)) {
-                    doc.text(`${key}: ${data[key]}`);
-                    doc.moveDown(0.3);
-                }
+            questions.forEach((q) => {
+                doc.text(`${q.label} ${q.value || ''}`, { align: 'right' });
+                if (q.extra) doc.text(`- ${q.extra}`, { align: 'right' });
+                doc.moveDown(0.3);
             });
 
-            // Signature
             doc.moveDown(1);
-            doc.text('חתימה:');
+
+            // Treatment info
+            doc.text(`עוצמת טיפול: ${data.treatmentIntensity || ''}`, {
+                align: 'right',
+            });
+            doc.text(`אזורי מיקוד: ${data.focusArea || ''}`, {
+                align: 'right',
+            });
+            doc.moveDown(1);
+
+            // Personal info
+            const personalFields = [
+                { label: 'שם המטופל:', value: data.clientName },
+                { label: 'ת.ז:', value: data.clientId },
+                { label: 'טלפון:', value: data.clientPhone },
+                { label: 'כתובת:', value: data.clientLocation },
+                {
+                    label: 'תאריך לידה:',
+                    value: data.clientBirthday
+                        ? new Date(data.clientBirthday).toLocaleDateString(
+                              'he-IL',
+                          )
+                        : '',
+                },
+            ];
+            personalFields.forEach((f) => {
+                doc.text(`${f.label} ${f.value || ''}`, { align: 'right' });
+                doc.moveDown(0.3);
+            });
+
+            doc.moveDown(1);
+
+            // Declaration
+            doc.text(
+                'אני מצהיר/ה כי האחריות להחליט באם כשרי הגופני מתאים לקבלת טיפול חלה עלי בלבד, כי אינני סובל/ת מבעיות רפואיות שעלולות לסכן אותי, ומאשר/ת כי המידע שמסרתי מלא ונכון ומוותר/ת על זכותי לתבוע את המטפל/ת בעתיד בהקשר לטיפול זה:',
+                { align: 'right' },
+            );
+            doc.text(`${data.declaration === 'true' ? 'מאושר' : 'לא מאושר'}`, {
+                align: 'right',
+            });
+            doc.moveDown(1);
+
+            // Signature
             if (data.signature) {
                 try {
                     const signatureBuffer = Buffer.from(
                         data.signature.replace(/^data:image\/\w+;base64,/, ''),
                         'base64',
                     );
-                    doc.image(signatureBuffer, { width: 250, height: 100 });
+                    doc.text('חתימה:', { align: 'center' });
+                    doc.image(
+                        signatureBuffer,
+                        doc.page.width / 2 - 125,
+                        doc.y,
+                        { width: 250, height: 100 },
+                    );
+                    doc.moveDown(1);
                 } catch (err) {
                     console.warn('Invalid signature image');
                 }
             }
 
             // Footer
-            doc.moveDown(2);
-            doc.fontSize(10).text(
+            doc.text(
                 `טופס נוצר אוטומטית על ידי מערכת SAN © ${new Date().getFullYear()}`,
                 { align: 'center' },
             );
 
             doc.end();
 
-            // Wait for PDF to finish writing
             await new Promise<void>((resolve, reject) => {
                 writeStream.on('finish', () => resolve());
                 writeStream.on('error', reject);
             });
 
-            // Build public URL
             const filePath = [
                 appConfig.SERVER_URL,
                 appConfig.PDFFILE_ASSET_PATH,
-                safeFileName,
+                fileName,
             ]
                 .join('/')
                 .replace(/\\/g, '/');
@@ -120,18 +246,14 @@ export class PDFFileController extends BaseController<PDFFileService> {
                     ? ['san.ajami.hs@gmail.com']
                     : ['christinemassage.111@gmail.com'];
 
-            const encodedFilePath = encodeURI(filePath);
-
             await sendMail({
                 to: mailTo,
                 subject: `מילוי טופס הצהרת בריאות של ${data.clientName}`,
                 text: '',
-                attachments: [
-                    { filename: safeFileName, path: encodedFilePath },
-                ],
+                attachments: [{ filename: fileName, path: pdfPath }],
             });
 
-            res.status(200).json({ url: encodedFilePath });
+            res.status(200).json({ url: encodeURI(filePath) });
         } catch (error) {
             next(error);
         }
