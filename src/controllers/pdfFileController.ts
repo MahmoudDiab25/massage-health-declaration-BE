@@ -86,7 +86,8 @@ export class PDFFileController extends BaseController<PDFFileService> {
                 appConfig.PDFFILE_WITH_PUBLIC_PATH,
                 fileName,
             );
-
+            console.log(require('playwright').chromium.executablePath());
+            console.log('/opt/render/.cache/ms-playwright/chromium-1193');
             // Launch Playwright and generate PDF
             const browser = await chromium.launch({
                 headless: true,
