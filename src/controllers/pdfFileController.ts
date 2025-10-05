@@ -4,9 +4,17 @@ import { BaseController } from './BaseController';
 import { PDFFileService } from '../services/pdfFileService';
 import path from 'path';
 import fs from 'fs';
-import { chromium } from 'playwright';
+import PDFDocument from 'pdfkit';
 import appConfig from '../config/appConfig';
 import { sendMail } from '../mailer/mailer';
+
+interface PDFRequestBody {
+    clientName: string;
+    signature?: string; // base64 string
+    sendToSan?: string;
+    // add other fields here
+    [key: string]: any;
+}
 
 @injectable()
 export class PDFFileController extends BaseController<PDFFileService> {
@@ -18,109 +26,112 @@ export class PDFFileController extends BaseController<PDFFileService> {
     }
 
     async createFile(
-        req: Request,
+        req: Request<{}, {}, PDFRequestBody>,
         res: Response,
         next: NextFunction,
     ): Promise<void> {
         try {
             const data = req.body;
 
-            // Build HTML (reuse your existing HTML)
-            const html = `
-                <html lang="he" dir="rtl">
-                <head>
-                    <meta charset="utf-8" />
-                    <title>טופס בריאות</title>
-                    <style>
-                        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #fff; margin: 0; direction: rtl; color: #333; padding-inline:10px; }
-                        h1,h2,h5 { text-align: center; margin:5px 0; }
-                        h1 { color: #2c3e50; margin-bottom: 10px; }
-                        h5 { font-weight: normal; color: #555; }
-                        .title { margin-block-end:10px; }
-                        .section { background:#fff; border-radius:10px; padding:20px 25px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,0.08); page-break-inside: avoid; }
-                        .section h2 { color:#3498db; margin-bottom:10px; font-size:16px; text-align:start; }
-                        .field { margin-bottom:8px; display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:6px; }
-                        .label { font-weight:bold; color:#2c3e50; }
-                        .value { color:#555; }
-                        ul { list-style:none; padding:0; margin:0; }
-                        ul li { padding:6px 10px; background:#f4f6f8; border-radius:6px; margin-bottom:6px; }
-                        ul li:nth-child(even){ background:#e9ecef; }
-                        ul li div { margin-top:4px; color:#444; font-size:0.75em; }
-                        .lastOne .label span { font-weight: normal; }
-                        .lastOne .field { border-bottom: unset; }
-                        .signature { margin-top:30px; text-align:center; display:flex; align-items:center; justify-content:center; gap:10px; }
-                        .signature h2 { font-size:18px; }
-                        .signature img { width:250px; height:auto; border-block-end:2px solid #ccc; margin-top:10px; }
-                        footer { text-align:center; margin-top:40px; font-size:12px; color:#888; }
-                        @page { margin-top:40px; margin-bottom:40px; margin-left:15px; margin-right:15px; }
-                    </style>
-                </head>
-                <body>
-                    <div class="title">
-                        <h2>הצהרת בריאות לקבלת עיסוי</h2>
-                        <h5>השאלון סודי וישמש למטרת הטיפול בלבד</h5>
-                    </div>
-                    <!-- Reuse all your sections here -->
-                    <div class="section">
-                        <div class="field"><span class="label">שם המטופל:</span><span class="value">${data.clientName}</span></div>
-                        <!-- ... add other fields ... -->
-                    </div>
-                    <div class="section lastOne">
-                        <div class="signature">
-                            <h2>חתימה</h2>
-                            <img src="${data.signature}" alt="חתימה" />
-                        </div>
-                    </div>
-                    <footer>
-                        טופס נוצר אוטומטית על ידי מערכת SAN &copy; ${new Date().getFullYear()}
-                    </footer>
-                </body>
-                </html>
-            `;
-
             // Generate PDF filename
             const now = new Date();
             const fileNameDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
             const fileName = `${data.clientName}_${fileNameDate}.pdf`;
+            const safeFileName = encodeURIComponent(
+                `${data.clientName}_${fileNameDate}.pdf`,
+            );
             const pdfPath = path.join(
                 appConfig.PDFFILE_WITH_PUBLIC_PATH,
-                fileName,
+                safeFileName,
             );
-            console.log(require('playwright').chromium.executablePath());
-            console.log('/opt/render/.cache/ms-playwright/chromium-1193');
-            // Launch Playwright and generate PDF
-            const browser = await chromium.launch({
-                headless: true,
-                args: ['--no-sandbox', '--disable-setuid-sandbox'],
-                executablePath: appConfig.PUPPETEER_EXECUTABLE_PATH,
-            });
-            const page = await browser.newPage();
-            await page.setContent(html, { waitUntil: 'networkidle' });
-            await page.pdf({ path: pdfPath, format: 'A4' });
-            await browser.close();
 
+            // Create PDF
+            const doc = new PDFDocument({ margin: 25, size: 'A4' });
+            doc.font(path.join(__dirname, '../fonts/DavidLibre-Regular.ttf'));
+            doc.text('הצהרת בריאות לקבלת עיסוי', { align: 'right' });
+
+            const writeStream = fs.createWriteStream(pdfPath);
+            doc.pipe(writeStream);
+
+            // Title
+            doc.fontSize(18).text('הצהרת בריאות לקבלת עיסוי', {
+                align: 'center',
+            });
+            doc.moveDown(0.5);
+            doc.fontSize(12).text('השאלון סודי וישמש למטרת הטיפול בלבד', {
+                align: 'center',
+            });
+            doc.moveDown(1);
+
+            // Client info
+            doc.fontSize(14).text(`שם המטופל: ${data.clientName}`);
+            doc.moveDown(0.5);
+
+            // Add other fields dynamically
+            Object.keys(data).forEach((key) => {
+                if (!['clientName', 'signature', 'sendToSan'].includes(key)) {
+                    doc.text(`${key}: ${data[key]}`);
+                    doc.moveDown(0.3);
+                }
+            });
+
+            // Signature
+            doc.moveDown(1);
+            doc.text('חתימה:');
+            if (data.signature) {
+                try {
+                    const signatureBuffer = Buffer.from(
+                        data.signature.replace(/^data:image\/\w+;base64,/, ''),
+                        'base64',
+                    );
+                    doc.image(signatureBuffer, { width: 250, height: 100 });
+                } catch (err) {
+                    console.warn('Invalid signature image');
+                }
+            }
+
+            // Footer
+            doc.moveDown(2);
+            doc.fontSize(10).text(
+                `טופס נוצר אוטומטית על ידי מערכת SAN © ${new Date().getFullYear()}`,
+                { align: 'center' },
+            );
+
+            doc.end();
+
+            // Wait for PDF to finish writing
+            await new Promise<void>((resolve, reject) => {
+                writeStream.on('finish', () => resolve());
+                writeStream.on('error', reject);
+            });
+
+            // Build public URL
             const filePath = [
                 appConfig.SERVER_URL,
                 appConfig.PDFFILE_ASSET_PATH,
-                fileName,
+                safeFileName,
             ]
                 .join('/')
                 .replace(/\\/g, '/');
 
-            // Send email if needed
+            // Send email
             const mailTo =
                 data.sendToSan === 'true'
                     ? ['san.ajami.hs@gmail.com']
                     : ['christinemassage.111@gmail.com'];
 
+            const encodedFilePath = encodeURI(filePath);
+
             await sendMail({
                 to: mailTo,
                 subject: `מילוי טופס הצהרת בריאות של ${data.clientName}`,
                 text: '',
-                attachments: [{ filename: fileName, path: filePath }],
+                attachments: [
+                    { filename: safeFileName, path: encodedFilePath },
+                ],
             });
 
-            res.status(200).json({ url: encodeURI(filePath) });
+            res.status(200).json({ url: encodedFilePath });
         } catch (error) {
             next(error);
         }
