@@ -4,7 +4,8 @@ import { BaseController } from './BaseController';
 import { PDFFileService } from '../services/pdfFileService';
 import path from 'path';
 import fs from 'fs';
-import PDFDocument from 'pdfkit';
+import fontkit from 'fontkit';
+import { PDFDocument, rgb } from 'pdf-lib';
 import appConfig from '../config/appConfig';
 import { sendMail } from '../mailer/mailer';
 
@@ -38,7 +39,7 @@ interface PDFRequestBody {
     painfulAreas?: string;
     painfulAreasText?: string;
     declaration?: string;
-    signature?: string;
+    signature?: string; // base64 image
     sendToSan?: string;
 }
 
@@ -67,35 +68,112 @@ export class PDFFileController extends BaseController<PDFFileService> {
                 fileName,
             );
 
-            const doc = new PDFDocument({ margin: 25, size: 'A4' });
-            const writeStream = fs.createWriteStream(pdfPath);
-            doc.pipe(writeStream);
+            // Create a new PDF document
+            const pdfDoc = await PDFDocument.create();
+            pdfDoc.registerFontkit(fontkit as any);
 
-            // Register Hebrew font
-            const fontPath = path.join(
-                __dirname,
-                '../fonts/DavidLibre-Regular.ttf',
+            // Embed Hebrew font (David Libre)
+            const fontBytes = fs.readFileSync(
+                path.join(__dirname, '../fonts/DavidLibre-Regular.ttf'),
             );
-            doc.registerFont('David', fontPath);
-            doc.font('David');
+
+            const hebrewFont = await pdfDoc.embedFont(fontBytes);
+
+            // Add a page
+            const page = pdfDoc.addPage([595, 842]); // A4
+            let y = page.getHeight() - 50;
+
+            const drawRTLText = (
+                text: string,
+                fontSize: number = 14,
+                maxWidth: number = 515,
+            ) => {
+                // Split by spaces and wrap lines (no reversing)
+                const words = text.split(' ');
+                let line = '';
+                const lines: string[] = [];
+
+                for (const word of words) {
+                    const testLine = line ? `${line} ${word}` : word;
+                    const lineWidth = hebrewFont.widthOfTextAtSize(
+                        testLine,
+                        fontSize,
+                    );
+                    if (lineWidth < maxWidth) {
+                        line = testLine;
+                    } else {
+                        lines.push(line);
+                        line = word;
+                    }
+                }
+                if (line) lines.push(line);
+
+                // Draw lines (RTL alignment)
+                for (const ln of lines) {
+                    const textWidth = hebrewFont.widthOfTextAtSize(
+                        ln,
+                        fontSize,
+                    );
+                    page.drawText(ln, {
+                        x: page.getWidth() - 40 - textWidth, // align right
+                        y,
+                        size: fontSize,
+                        font: hebrewFont,
+                        color: rgb(0, 0, 0),
+                    });
+                    y -= fontSize + 5;
+                }
+            };
+
+            const drawLTRText = (
+                text: string,
+                fontSize: number = 14,
+                maxWidth: number = 515,
+            ) => {
+                const words = text.split(' ');
+                let line = '';
+                const lines: string[] = [];
+
+                // Build wrapped lines (LTR order)
+                for (const word of words) {
+                    const testLine = line ? `${line} ${word}` : word;
+                    const lineWidth = hebrewFont.widthOfTextAtSize(
+                        testLine,
+                        fontSize,
+                    );
+                    if (lineWidth < maxWidth) {
+                        line = testLine;
+                    } else {
+                        lines.push(line);
+                        line = word;
+                    }
+                }
+                if (line) lines.push(line);
+
+                // Draw lines top-to-bottom
+                for (const ln of lines) {
+                    page.drawText(ln, {
+                        x: 40, // left margin
+                        y,
+                        size: fontSize,
+                        font: hebrewFont,
+                        color: rgb(0, 0, 0),
+                    });
+                    y -= fontSize + 5;
+                }
+            };
 
             // Title
-            doc.fontSize(18).text('הצהרת בריאות לקבלת עיסוי', {
-                align: 'center',
-            });
-            doc.moveDown(0.5);
-            doc.fontSize(12).text(
+            drawRTLText('הצהרת בריאות לקבלת עיסוי', 18);
+            drawRTLText(
                 'השאלון הינו סודי בהחלט וישמש למטרת הטיפול וקידום צרכי המטופל בלבד',
-                { align: 'center' },
+                12,
             );
-            doc.moveDown(0.5);
-            doc.text('בעיות רפואיות מיוחדות - האם את/ה סובל/ת מ...', {
-                align: 'center',
-            });
-            doc.moveDown(1);
+            drawRTLText('בעיות רפואיות מיוחדות - האם את/ה סובל/ת מ...', 12);
+            y -= 10;
 
             // Health questions
-            doc.fontSize(14).text('שאלות בריאות', { align: 'right' });
+            drawRTLText('שאלות בריאות', 14);
             const questions = [
                 {
                     label: 'מחלת לב:',
@@ -151,21 +229,15 @@ export class PDFFileController extends BaseController<PDFFileService> {
             ];
 
             questions.forEach((q) => {
-                doc.text(`${q.label} ${q.value || ''}`, { align: 'right' });
-                if (q.extra) doc.text(`- ${q.extra}`, { align: 'right' });
-                doc.moveDown(0.3);
+                drawRTLText(`${q.label} ${q.value || ''}`);
+                if (q.extra) drawRTLText(`- ${q.extra}`);
+                y -= 5;
             });
 
-            doc.moveDown(1);
-
-            // Treatment info
-            doc.text(`עוצמת טיפול: ${data.treatmentIntensity || ''}`, {
-                align: 'right',
-            });
-            doc.text(`אזורי מיקוד: ${data.focusArea || ''}`, {
-                align: 'right',
-            });
-            doc.moveDown(1);
+            y -= 10;
+            drawRTLText(`עוצמת טיפול: ${data.treatmentIntensity || ''}`);
+            drawRTLText(`אזורי מיקוד: ${data.focusArea || ''}`);
+            y -= 10;
 
             // Personal info
             const personalFields = [
@@ -183,54 +255,63 @@ export class PDFFileController extends BaseController<PDFFileService> {
                 },
             ];
             personalFields.forEach((f) => {
-                doc.text(`${f.label} ${f.value || ''}`, { align: 'right' });
-                doc.moveDown(0.3);
+                const label = f.label || '';
+                const value = f.value || '';
+
+                // Fields that should be LTR (numbers, English, etc.)
+                const isLTR = ['ת.ז', 'טלפון', 'תאריך לידה'].some((ltrKey) =>
+                    label.includes(ltrKey),
+                );
+
+                if (isLTR) {
+                    // Draw label RTL on the right
+                    drawRTLText(label);
+                    // Draw value LTR on the left side
+                    drawLTRText(value);
+                } else {
+                    // Regular RTL combined line
+                    drawRTLText(`${label} ${value}`);
+                }
             });
 
-            doc.moveDown(1);
-
-            // Declaration
-            doc.text(
+            y -= 10;
+            drawRTLText(
                 'אני מצהיר/ה כי האחריות להחליט באם כשרי הגופני מתאים לקבלת טיפול חלה עלי בלבד, כי אינני סובל/ת מבעיות רפואיות שעלולות לסכן אותי, ומאשר/ת כי המידע שמסרתי מלא ונכון ומוותר/ת על זכותי לתבוע את המטפל/ת בעתיד בהקשר לטיפול זה:',
-                { align: 'right' },
             );
-            doc.text(`${data.declaration === 'true' ? 'מאושר' : 'לא מאושר'}`, {
-                align: 'right',
-            });
-            doc.moveDown(1);
+            drawRTLText(
+                `${data.declaration === 'true' ? 'מאושר' : 'לא מאושר'}`,
+            );
 
+            y -= 20;
             // Signature
             if (data.signature) {
                 try {
-                    const signatureBuffer = Buffer.from(
+                    const signatureBytes = Buffer.from(
                         data.signature.replace(/^data:image\/\w+;base64,/, ''),
                         'base64',
                     );
-                    doc.text('חתימה:', { align: 'center' });
-                    doc.image(
-                        signatureBuffer,
-                        doc.page.width / 2 - 125,
-                        doc.y,
-                        { width: 250, height: 100 },
-                    );
-                    doc.moveDown(1);
+                    const sigImage = await pdfDoc.embedPng(signatureBytes);
+                    const imgDims = sigImage.scale(1);
+                    page.drawImage(sigImage, {
+                        x: page.getWidth() / 2 - 125,
+                        y: y - 100,
+                        width: 250,
+                        height: 100,
+                    });
+                    y -= 110;
                 } catch (err) {
                     console.warn('Invalid signature image');
                 }
             }
 
             // Footer
-            doc.text(
+            drawRTLText(
                 `טופס נוצר אוטומטית על ידי מערכת SAN © ${new Date().getFullYear()}`,
-                { align: 'center' },
+                12,
             );
 
-            doc.end();
-
-            await new Promise<void>((resolve, reject) => {
-                writeStream.on('finish', () => resolve());
-                writeStream.on('error', reject);
-            });
+            const pdfBytes = await pdfDoc.save();
+            fs.writeFileSync(pdfPath, pdfBytes);
 
             const filePath = [
                 appConfig.SERVER_URL,
@@ -245,7 +326,6 @@ export class PDFFileController extends BaseController<PDFFileService> {
                 data.sendToSan === 'true'
                     ? ['san.ajami.hs@gmail.com']
                     : ['christinemassage.111@gmail.com'];
-
             await sendMail({
                 to: mailTo,
                 subject: `מילוי טופס הצהרת בריאות של ${data.clientName}`,
