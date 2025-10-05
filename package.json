@@ -21,7 +21,7 @@
         "prisma:generate": "prisma generate",
         "prisma:migrate": "prisma migrate dev",
         "prisma:deploy": "prisma migrate deploy",
-        "prepare": "if [ \"$NODE_ENV\" != \"production\" ]; then husky install; fi",
+        "prepare": "cross-env-shell \"if [ \\\"$NODE_ENV\\\" != \\\"production\\\" ]; then husky install; fi\"",
         "generate": "ts-node generate-files.ts"
     },
     "dependencies": {
@@ -71,12 +71,13 @@
         "@types/node": "^22.18.0",
         "@types/nodemailer": "^7.0.2",
         "@types/puppeteer": "^7.0.4",
-        "@types/supertest": "^6.0.2",
+        "@types/supertest": "^6.0.3",
         "@types/swagger-jsdoc": "^6.0.4",
         "@types/swagger-ui-express": "^4.1.8",
         "@typescript-eslint/eslint-plugin": "^5.62.0",
         "@typescript-eslint/parser": "^5.62.0",
         "copyfiles": "^2.4.1",
+        "cross-env": "^10.1.0",
         "eslint": "^8.57.0",
         "eslint-config-prettier": "^9.1.0",
         "eslint-plugin-prettier": "^5.2.1",
@@ -87,7 +88,7 @@
         "prettier": "^3.3.3",
         "prisma": "^5.16.2",
         "supertest": "^7.0.0",
-        "ts-jest": "^29.2.2",
+        "ts-jest": "^29.4.4",
         "ts-node": "^10.9.2",
         "ts-node-dev": "^1.1.8",
         "typescript": "^5.9.2"
