@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "C:\\Users\\USER\\Desktop\\React Systems\\YWCT\\YWCT-Backend\\logs\\.a3542020bbd079048a078f17d76d8b60147a9089-audit.json",
+    "files": [
+        {
+            "date": 1756646025588,
+            "name": "C:\\Users\\USER\\Desktop\\React Systems\\YWCT\\YWCT-Backend\\logs\\2025-08-31-error.log",
+            "hash": "29bd0e890e49448d5e7afc052b6d673eb8250ae2fe0f856d74b9ad6120f8bc09"
+        },
+        {
+            "date": 1756711841038,
+            "name": "C:\\Users\\USER\\Desktop\\React Systems\\YWCT\\YWCT-Backend\\logs\\2025-09-01-error.log",
+            "hash": "aff9ee64c199904a2ed571eaf858311634bfd5aa48dd887c8e4ed8458c201e81"
+        }
+    ],
+    "hashType": "sha256"
+}
