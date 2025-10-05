@@ -22,26 +22,26 @@ const allowedOrigins = [
     'http://localhost:3000', // frontend dev
 ];
 
-app.use((req: Request, res: Response, next: NextFunction) => {
-    const origin = req.headers.origin;
-    if (origin && allowedOrigins.includes(origin)) {
-        res.header('Access-Control-Allow-Origin', origin);
-        res.header('Access-Control-Allow-Credentials', 'true');
-        res.header(
-            'Access-Control-Allow-Headers',
-            'Origin, X-Requested-With, Content-Type, Accept, Authorization',
-        );
-        res.header(
-            'Access-Control-Allow-Methods',
-            'GET, POST, PUT, DELETE, OPTIONS',
-        );
-    }
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(204);
-    }
-    next();
-});
+const corsOptions = {
+    origin: (
+        origin: string | undefined,
+        callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error(`Origin ${origin} not allowed by CORS`));
+        }
+    },
+    credentials: true,
+    optionsSuccessStatus: 200, // preflight for legacy browsers
+};
 
+// Apply CORS middleware BEFORE routes
+app.use(cors(corsOptions));
+
+// Handle OPTIONS preflight requests globally
+app.options('*', cors(corsOptions));
 // ---------------------
 // Static files
 // ---------------------
