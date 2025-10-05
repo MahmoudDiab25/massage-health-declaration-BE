@@ -13,6 +13,8 @@ interface AppConfig {
 
     NODEMAILER_EMAIL: string;
     NODEMAILER_WEBAPP_PASS: string;
+
+    PUPPETEER_EXECUTABLE_PATH: string | undefined;
 }
 
 const appConfig: AppConfig = {
@@ -41,6 +43,7 @@ const appConfig: AppConfig = {
 
     NODEMAILER_EMAIL: process.env.NODEMAILER_EMAIL || '',
     NODEMAILER_WEBAPP_PASS: process.env.NODEMAILER_WEBAPP_PASS || '',
+    PUPPETEER_EXECUTABLE_PATH: process.env.PUPPETEER_EXECUTABLE_PATH,
 };
 
 export default appConfig;
