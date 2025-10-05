@@ -7,35 +7,32 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import i18n from './config/i18n';
 import v1Routes from './routes/v1';
-import { PrismaClient } from '@prisma/client';
 import setupSwagger from './config/swagger/swaggerConfig';
 import { errorHandler } from './middlewares/errorHandler';
-import { CorsOptions } from 'cors';
 import path from 'path';
 import appConfig from './config/appConfig';
 import prisma from './config/prismaClient';
 
 const app = express();
 
-app.use(
-    cors({
-        origin: (
-            origin: string | undefined,
-            callback: (err: Error | null, allow?: boolean) => void,
-        ) => {
-            const allowedOrigins = [
-                'https://massage-health-declaration.netlify.app', // ✅ production
-                'http://localhost:3000', // ✅ local dev
-            ];
+const allowedOrigins = [
+    'https://massage-health-declaration.netlify.app/', // production FE domain
+    'http://localhost:3000/', // local dev
+];
 
-            if (!origin) return callback(null, true); // allow server-to-server, like cron jobs
-            if (allowedOrigins.includes(origin)) return callback(null, true);
+const corsOptions = {
+    origin: (origin: string | undefined, callback: Function) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+};
 
-            return callback(new Error(`Origin ${origin} not allowed by CORS`));
-        },
-        credentials: true,
-    }),
-);
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // handle preflight
 
 if (process.env.NODE_ENV == 'development') {
     app.use(
