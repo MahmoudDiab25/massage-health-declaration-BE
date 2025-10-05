@@ -4,7 +4,7 @@ import { BaseController } from './BaseController';
 import { PDFFileService } from '../services/pdfFileService';
 import path from 'path';
 import fs from 'fs';
-import { chromium } from 'playwright'; // ✅ Playwright instead of Puppeteer
+import { chromium } from 'playwright';
 import appConfig from '../config/appConfig';
 import { sendMail } from '../mailer/mailer';
 
