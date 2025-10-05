@@ -20,11 +20,20 @@ const app = express();
 app.use(
     cors({
         origin: (
-            origin: any,
-            callback: (err: any, allow?: boolean) => void,
+            origin: string | undefined,
+            callback: (err: Error | null, allow?: boolean) => void,
         ) => {
-            callback(null, true);
+            const allowedOrigins = [
+                'https://massage-health-declaration.netlify.app', // ✅ production
+                'http://localhost:3000', // ✅ local dev
+            ];
+
+            if (!origin) return callback(null, true); // allow server-to-server, like cron jobs
+            if (allowedOrigins.includes(origin)) return callback(null, true);
+
+            return callback(new Error(`Origin ${origin} not allowed by CORS`));
         },
+        credentials: true,
     }),
 );
 
