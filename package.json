@@ -21,7 +21,7 @@
         "prisma:generate": "prisma generate",
         "prisma:migrate": "prisma migrate dev",
         "prisma:deploy": "prisma migrate deploy",
-        "prepare": "cross-env-shell \"if [ \\\"$NODE_ENV\\\" != \\\"production\\\" ]; then husky install; fi\"",
+        "prepare": "node -e \"if (process.env.NODE_ENV !== 'production') { require('child_process').execSync('npx husky install', { stdio: 'inherit' }) }\"",
         "generate": "ts-node generate-files.ts"
     },
     "dependencies": {
