@@ -22,7 +22,8 @@
         "prisma:migrate": "prisma migrate dev",
         "prisma:deploy": "prisma migrate deploy",
         "prepare": "echo skipping husky setup",
-        "generate": "ts-node generate-files.ts"
+        "generate": "ts-node generate-files.ts",
+        "postinstall": "npx puppeteer install chrome"
     },
     "dependencies": {
         "@fontsource-variable/public-sans": "^5.2.7",
