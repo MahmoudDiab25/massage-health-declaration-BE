@@ -1,6 +1,5 @@
 import 'reflect-metadata';
 import dotenv from 'dotenv';
-// Load environment variables from .env file
 dotenv.config();
 
 import express, { Request, Response, NextFunction } from 'express';
@@ -15,26 +14,38 @@ import prisma from './config/prismaClient';
 
 const app = express();
 
+// ---------------------
+// CORS configuration
+// ---------------------
 const allowedOrigins = [
-    'https://massage-health-declaration.netlify.app/', // production FE domain
-    'http://localhost:3000/', // local dev
+    'https://massage-health-declaration.netlify.app', // frontend prod
+    'http://localhost:3000', // frontend dev
 ];
 
-const corsOptions = {
-    origin: (origin: string | undefined, callback: Function) => {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true,
-};
+app.use((req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Access-Control-Allow-Credentials', 'true');
+        res.header(
+            'Access-Control-Allow-Headers',
+            'Origin, X-Requested-With, Content-Type, Accept, Authorization',
+        );
+        res.header(
+            'Access-Control-Allow-Methods',
+            'GET, POST, PUT, DELETE, OPTIONS',
+        );
+    }
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+    next();
+});
 
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // handle preflight
-
-if (process.env.NODE_ENV == 'development') {
+// ---------------------
+// Static files
+// ---------------------
+if (process.env.NODE_ENV === 'development') {
     app.use(
         express.static(
             path.join(__dirname, '..', appConfig.PUBLIC_ASSET_PATH || 'public'),
@@ -44,36 +55,45 @@ if (process.env.NODE_ENV == 'development') {
     app.use(express.static(path.join(appConfig.PUBLIC_ASSET_PATH || 'public')));
 }
 
+// ---------------------
+// Body parsing
+// ---------------------
 app.use(express.json({ limit: appConfig.UPLOAD_LIMIT }));
 app.use(express.urlencoded({ limit: appConfig.UPLOAD_LIMIT, extended: true }));
 
-//locale init
+// ---------------------
+// i18n locale setup
+// ---------------------
 app.use(i18n.init);
-//set locale from lang param
-app.use((req, res, next) => {
+
+app.use((req: Request, res: Response, next: NextFunction) => {
     const lang = req.query.lang as string;
-    if (lang) {
+    if (lang && typeof res.setLocale === 'function') {
         res.setLocale(lang);
-    } else {
+    } else if (typeof res.setLocale === 'function') {
         res.setLocale('en');
     }
     next();
 });
-//
 
-app.use(express.json());
-
-// app.use((req: Request, res: Response, next: NextFunction) => {
-//     res.setHeader('Access-Control-Allow-Origin', '*');
-//     next();
-// });
-
+// ---------------------
+// API routes
+// ---------------------
 app.use(v1Routes);
+
+// ---------------------
 // Swagger setup
+// ---------------------
 setupSwagger(app);
 
+// ---------------------
+// Error handling
+// ---------------------
 app.use(errorHandler);
-// Prisma clean shutdown
+
+// ---------------------
+// Prisma shutdown
+// ---------------------
 process.on('SIGINT', async () => {
     await prisma.$disconnect();
     process.exit(0);
