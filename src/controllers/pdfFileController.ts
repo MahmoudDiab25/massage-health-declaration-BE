@@ -90,7 +90,7 @@ export class PDFFileController extends BaseController<PDFFileService> {
             // Launch Playwright and generate PDF
             const browser = await chromium.launch({
                 headless: true,
-                args: ['--no-sandbox', '--disable-setuid-sandbox'], // required for many cloud hosts
+                args: ['--no-sandbox', '--disable-setuid-sandbox'],
             });
             const page = await browser.newPage();
             await page.setContent(html, { waitUntil: 'networkidle' });
