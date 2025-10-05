@@ -1,7 +1,0 @@
-2025-09-01 11:05:36 error: unauthorized_client: Client is unauthorized to retrieve access tokens using this method, or client not authorized for any of the scopes requested.
-2025-09-01 11:14:24 error: unauthorized_client: Client is unauthorized to retrieve access tokens using this method, or client not authorized for any of the scopes requested.
-2025-09-01 11:15:04 error: unauthorized_client: Client is unauthorized to retrieve access tokens using this method, or client not authorized for any of the scopes requested.
-2025-09-01 11:16:29 error: error:1E08010C:DECODER routines::unsupported
-2025-09-01 11:16:40 error: Received shutdown signal, shutting down gracefully...
-2025-09-01 11:21:23 error: unauthorized_client: Client is unauthorized to retrieve access tokens using this method, or client not authorized for any of the scopes requested.
-2025-09-01 12:03:23 error: Received shutdown signal, shutting down gracefully...
