@@ -19,18 +19,12 @@ const app = express();
 
 app.use(
     cors({
-        origin: (origin, callback) => {
-            const allowedOrigins = [
-                'http://localhost:3000',
-                'https://app.ywct.com',
-                'https://report.ywct.com',
-            ];
-
-            if (!origin) return callback(null, true); // allow server-to-server
-            if (allowedOrigins.includes(origin)) return callback(null, true);
-            return callback(new Error(`Origin ${origin} not allowed by CORS`));
+        origin: (
+            origin: any,
+            callback: (err: any, allow?: boolean) => void,
+        ) => {
+            callback(null, true);
         },
-        credentials: true,
     }),
 );
 
