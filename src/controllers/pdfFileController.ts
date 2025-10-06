@@ -107,7 +107,7 @@ export class PDFFileController extends BaseController<PDFFileService> {
                 to: mailTo,
                 subject: `מילוי טופס הצהרת בריאות של ${data.clientName}`,
                 text: 'מצורף טופס הצהרת הבריאות שלך. תודה!',
-                html: '<p>מצורף <strong>טופס הצהרת הבריאות</strong> שלך. תודה!</p>',
+                // html: '<p>מצורף <strong>טופס הצהרת הבריאות</strong> שלך. תודה!</p>',
                 attachments: [
                     { filename: encodedFileName, path: encodedFilePath },
                 ],
