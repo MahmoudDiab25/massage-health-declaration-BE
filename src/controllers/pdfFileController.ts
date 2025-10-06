@@ -347,31 +347,16 @@ export class PDFFileController extends BaseController<PDFFileService> {
             const encodedUrl = encodeURI(filePath); // encodes special characters
 
             // ✅ Check if newPage/sendToSan key is true, then send to another email
-            if (data.sendToSan === 'true') {
-                await sendMail({
-                    to: ['san.ajami.hs@gmail.com'], // replace with the other email
-                    subject: `מילוי טופס הצהרת בריאות של ${data.clientName}`,
-                    text: '',
-                    attachments: [
-                        {
-                            filename: fileName,
-                            path: encodedUrl,
-                        },
-                    ],
-                });
-            } else {
-                await sendMail({
-                    to: ['christinemassage.111@gmail.com'],
-                    subject: `מילוי טופס הצהרת בריאות של ${data.clientName}`,
-                    text: '',
-                    attachments: [
-                        {
-                            filename: fileName,
-                            path: encodedUrl, // the path to your generated PDF
-                        },
-                    ],
-                });
-            }
+            const mailTo =
+                data.sendToSan === 'true'
+                    ? ['san.ajami.hs@gmail.com']
+                    : ['christinemassage.111@gmail.com'];
+            await sendMail({
+                to: mailTo,
+                subject: `מילוי טופס הצהרת בריאות של ${data.clientName}`,
+                text: '',
+                attachments: [{ filename: fileName, path: pdfPath }],
+            });
 
             res.status(200).json({ url: encodedUrl });
         } catch (error) {
