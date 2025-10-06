@@ -23,7 +23,7 @@
         "prisma:deploy": "prisma migrate deploy",
         "prepare": "echo skipping husky setup",
         "generate": "ts-node generate-files.ts",
-        "postinstall": "npx playwright install --with-deps chromium"
+        "postinstall": "npx playwright install chromium"
     },
     "dependencies": {
         "@fontsource-variable/public-sans": "^5.2.7",
