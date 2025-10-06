@@ -15,6 +15,9 @@ interface AppConfig {
     NODEMAILER_WEBAPP_PASS: string;
 
     PUPPETEER_EXECUTABLE_PATH: string | undefined;
+
+    SENDGRID_API_KEY: string;
+    SENDGRID_FROM_EMAIL: string;
 }
 
 const appConfig: AppConfig = {
@@ -47,6 +50,9 @@ const appConfig: AppConfig = {
     NODEMAILER_EMAIL: process.env.NODEMAILER_EMAIL || '',
     NODEMAILER_WEBAPP_PASS: process.env.NODEMAILER_WEBAPP_PASS || '',
     PUPPETEER_EXECUTABLE_PATH: process.env.PUPPETEER_EXECUTABLE_PATH,
+
+    SENDGRID_API_KEY: process.env.SENDGRID_API_KEY || '',
+    SENDGRID_FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL || '',
 };
 
 export default appConfig;
