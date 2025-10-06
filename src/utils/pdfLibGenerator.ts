@@ -158,7 +158,7 @@ export async function pdfLibGenerator(data: PDFData): Promise<string> {
     ]
         .join('/') // use forward slashes
         .replace(/\\/g, '/'); // just in case
-    const encodedUrl = encodeURI(filePath); // encodes special characters
+    // const encodedUrl = encodeURI(filePath); // encodes special characters
 
-    return encodedUrl;
+    return filePath;
 }
