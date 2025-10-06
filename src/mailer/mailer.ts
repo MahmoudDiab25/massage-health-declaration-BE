@@ -77,7 +77,6 @@ export async function sendMail({
         from: appConfig.SENDGRID_FROM_EMAIL, // must be a verified sender in SendGrid
         subject,
         text,
-        html,
         attachments: attachmentData,
     };
 
