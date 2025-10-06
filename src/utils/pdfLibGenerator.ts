@@ -154,11 +154,10 @@ export async function pdfLibGenerator(data: PDFData): Promise<string> {
     const filePath = [
         appConfig.SERVER_URL,
         appConfig.PDFFILE_ASSET_PATH,
-        path.basename(pdfPath),
+        fileName,
     ]
-        .join('/') // use forward slashes
-        .replace(/\\/g, '/'); // just in case
-    // const encodedUrl = encodeURI(filePath); // encodes special characters
+        .join('/')
+        .replace(/\\/g, '/');
 
     return filePath;
 }
