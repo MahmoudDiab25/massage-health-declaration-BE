@@ -19,30 +19,60 @@ export async function sendMail({
     attachments,
 }: SendMailOptions) {
     const attachmentData =
-        attachments?.map((file) => {
-            // If it's a full URL, strip the domain and use local file path instead
-            let localPath = file.path;
+        attachments
+            ?.map((file) => {
+                let localPath = file.path;
 
-            if (file.path.startsWith('http')) {
-                // e.g. https://massage-health-declaration-be.onrender.com/uploads/pdfFiles/xxx.pdf
-                const url = new URL(file.path);
-                localPath = path.join('public', url.pathname); // => public/uploads/pdfFiles/xxx.pdf
-            }
+                try {
+                    // If it’s a full URL, strip the domain and map to the local public folder
+                    if (localPath.startsWith('http')) {
+                        const url = new URL(localPath);
+                        // decode URI for Hebrew chars like %D7%9E...
+                        const decodedPathname = decodeURIComponent(
+                            url.pathname,
+                        );
+                        // join with the local project path
+                        localPath = path.join(
+                            process.cwd(),
+                            'public',
+                            decodedPathname,
+                        );
+                    } else {
+                        // if relative, make sure it's absolute
+                        localPath = path.resolve(localPath);
+                    }
 
-            const fileContent = fs
-                .readFileSync(path.resolve(localPath))
-                .toString('base64');
-            return {
-                filename: file.filename,
-                type: 'application/pdf',
-                content: fileContent,
-                disposition: 'attachment',
-            };
-        }) ?? [];
+                    // Double-check file existence
+                    if (!fs.existsSync(localPath)) {
+                        console.error('❌ File not found at:', localPath);
+                        return null;
+                    }
+
+                    // Read and encode to Base64
+                    const fileContent = fs
+                        .readFileSync(localPath)
+                        .toString('base64');
+
+                    return {
+                        filename: file.filename,
+                        type: 'application/pdf',
+                        content: fileContent,
+                        disposition: 'attachment',
+                    };
+                } catch (error) {
+                    console.error(
+                        '⚠️ Error reading attachment file:',
+                        file.path,
+                        error,
+                    );
+                    return null;
+                }
+            })
+            .filter((f): f is NonNullable<typeof f> => f !== null) ?? [];
 
     const msg = {
         to,
-        from: appConfig.SENDGRID_FROM_EMAIL, // must be verified sender in SendGrid
+        from: appConfig.SENDGRID_FROM_EMAIL, // must be a verified sender in SendGrid
         subject,
         text,
         attachments: attachmentData,
