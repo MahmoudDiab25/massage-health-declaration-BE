@@ -59,6 +59,7 @@
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
         "reflect-metadata": "^0.2.2",
+        "slugify": "^1.6.6",
         "sqlite3": "^5.1.7",
         "swagger-jsdoc": "^6.2.8",
         "swagger-ui-express": "^5.0.1",

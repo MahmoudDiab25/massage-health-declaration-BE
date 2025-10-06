@@ -32,65 +32,99 @@ export async function pdfLibGenerator(
     data: PDFData,
 ): Promise<{ fileName: string; filePath: string }> {
     const pdfDoc = await PDFDocument.create();
-
-    // ✅ Register fontkit before embedding custom fonts
     pdfDoc.registerFontkit(fontkit);
 
-    // Embed a standard font (you can add a TTF font for Hebrew if needed)
     const fontBytes = fs.readFileSync(
         path.join(__dirname, '../fonts/DavidLibre-Regular.ttf'),
     );
-    const hebrewFont = await pdfDoc.embedFont(fontBytes);
+    const font = await pdfDoc.embedFont(fontBytes);
 
-    const page = pdfDoc.addPage([595, 842]); // A4
-    let y = page.getHeight() - 50;
+    const pageWidth = 595;
+    const pageHeight = 842;
+    const margin = 40;
+    const topMargin = 50;
+    const bottomMargin = 50;
+    const lineSpacing = 6;
 
-    const drawRTLText = (text: string, fontSize = 14) => {
-        const textWidth = hebrewFont.widthOfTextAtSize(text, fontSize);
-        page.drawText(text, {
-            x: page.getWidth() - 40 - textWidth,
-            y,
-            size: fontSize,
-            font: hebrewFont, // use embedded TTF
-            color: rgb(0, 0, 0),
-        });
-        y -= fontSize + 5;
+    let page = pdfDoc.addPage([pageWidth, pageHeight]);
+    let y = pageHeight - topMargin;
+
+    const footerText = `טופס נוצר אוטומטית על ידי מערכת SAN © ${new Date().getFullYear()}`;
+    const footerFontSize = 10;
+
+    const addNewPage = () => {
+        page = pdfDoc.addPage([pageWidth, pageHeight]);
+        y = pageHeight - topMargin;
     };
 
-    const drawLTRText = (text: string, fontSize = 14) => {
-        page.drawText(text, {
-            x: 40,
-            y,
-            size: fontSize,
-            font: hebrewFont, // use embedded TTF
-            color: rgb(0, 0, 0),
-        });
-        y -= fontSize + 5;
+    const wrapText = (text: string, maxWidth: number, fontSize: number) => {
+        const lines: string[] = [];
+        let line = '';
+        for (const word of text.split(' ')) {
+            const testLine = line ? `${line} ${word}` : word;
+            if (font.widthOfTextAtSize(testLine, fontSize) > maxWidth) {
+                if (line) lines.push(line);
+                let subLine = '';
+                for (const char of word) {
+                    if (
+                        font.widthOfTextAtSize(subLine + char, fontSize) >
+                        maxWidth
+                    ) {
+                        lines.push(subLine);
+                        subLine = char;
+                    } else subLine += char;
+                }
+                line = subLine;
+            } else {
+                line = testLine;
+            }
+        }
+        if (line) lines.push(line);
+        return lines;
     };
 
-    // Title
-    drawRTLText('הצהרת בריאות לקבלת עיסוי', 18);
-    drawRTLText(
+    const drawText = (text: string, fontSize = 14, rtl = false) => {
+        if (!text) return;
+        const lines = wrapText(text, pageWidth - margin * 2, fontSize);
+        for (const lineText of lines) {
+            if (y - fontSize < bottomMargin) addNewPage();
+            const textWidth = font.widthOfTextAtSize(lineText, fontSize);
+            page.drawText(lineText, {
+                x: rtl ? pageWidth - margin - textWidth : margin,
+                y,
+                size: fontSize,
+                font,
+                color: rgb(0, 0, 0),
+            });
+            y -= fontSize + lineSpacing;
+        }
+    };
+
+    // --- Title ---
+    drawText('הצהרת בריאות לקבלת עיסוי', 18, true);
+    drawText(
         'השאלון הינו סודי בהחלט וישמש למטרת הטיפול וקידום צרכי המטופל בלבד',
         12,
+        true,
     );
-    drawRTLText('בעיות רפואיות מיוחדות - האם את/ה סובל/ת מ...', 12);
+    drawText('בעיות רפואיות מיוחדות - האם את/ה סובל/ת מ...', 12, true);
     y -= 10;
 
-    // Health Questions
-    drawRTLText('שאלות בריאות', 14);
+    // --- Health Questions ---
     data.healthQuestions.forEach((q) => {
-        drawRTLText(`${q.label} ${q.value || ''}`);
-        if (q.extra) drawRTLText(`- ${q.extra}`);
-        y -= 5;
+        drawText(`${q.label} ${q.value || ''}`, 12, true);
+        if (q.extra) drawText(`- ${q.extra}`, 12, true);
+        y -= 5; // extra spacing between questions
     });
 
     y -= 10;
-    drawRTLText(`עוצמת טיפול: ${data.treatmentIntensity || ''}`);
-    drawRTLText(`אזורי מיקוד: ${data.focusArea || ''}`);
-    y -= 10;
 
-    // Personal info
+    // --- Treatment Info ---
+    drawText(`עוצמת טיפול: ${data.treatmentIntensity || ''}`, 12, true);
+    drawText(`אזורי מיקוד: ${data.focusArea || ''}`, 12, true);
+
+    // --- Personal Info --- new page
+    addNewPage();
     const {
         clientName,
         clientId,
@@ -117,58 +151,82 @@ export async function pdfLibGenerator(
     ];
 
     personalFields.forEach((f) => {
-        drawRTLText(f.label);
-        drawLTRText(f.value || '');
-        y -= 5;
+        drawText(f.label, 12, true);
+        drawText(f.value || '', 12, false);
     });
 
     y -= 10;
-    drawRTLText(
-        `אני מצהיר/ה כי האחריות להחליט באם כשרי הגופני מתאים לקבלת טיפול חלה עלי בלבד, כי אינני סובל/ת מבעיות רפואיות שעלולות לסכן אותי, ומאשר/ת כי המידע שמסרתי מלא ונכון ומוותר/ת על זכותי לתבוע את המטפל/ת בעתיד בהקשר לטיפול זה.: ${data.declaration === 'true' ? 'מאושר' : 'לא מאושר'}`,
-    );
 
-    // Signature
+    // --- Declaration ---
+    if (data.declaration) {
+        drawText(
+            `אני מצהיר/ה כי האחריות להחליט באם כשרי הגופני מתאים לקבלת טיפול חלה עלי בלבד, כי אינני סובל/ת מבעיות רפואיות שעלולות לסכן אותי, ומאשר/ת כי המידע שמסרתי מלא ונכון ומוותר/ת על זכותי לתבוע את המטפל/ת בעתיד בהקשר לטיפול זה: ${data.declaration === 'true' ? 'מאושר' : 'לא מאושר'}`,
+            12,
+            true,
+        );
+    }
+
+    // --- Signature --- new page
     if (data.signature) {
+        // addNewPage();
+        drawText('חתימה', 12, true);
+
         try {
             const sigBytes = Buffer.from(
                 data.signature.replace(/^data:image\/\w+;base64,/, ''),
                 'base64',
             );
             const sigImage = await pdfDoc.embedPng(sigBytes);
-            const dims = sigImage.scale(1);
+
+            const sigHeight = 100;
+            const sigWidth = 250;
+            const sigSpacing = 5;
+
             page.drawImage(sigImage, {
-                x: page.getWidth() / 2 - 125,
-                y: y - 100,
-                width: 250,
-                height: 100,
+                x: pageWidth / 2 - sigWidth / 2,
+                y: y - sigHeight,
+                width: sigWidth,
+                height: sigHeight,
             });
-            y -= 110;
-        } catch (err) {
-            console.warn('Invalid signature');
+
+            y -= sigHeight + sigSpacing;
+
+            // Underline
+            const lineY = y;
+            page.drawLine({
+                start: { x: pageWidth / 2 - sigWidth / 2, y: lineY },
+                end: { x: pageWidth / 2 + sigWidth / 2, y: lineY },
+                thickness: 1,
+                color: rgb(0, 0, 0),
+            });
+
+            y -= 10;
+        } catch {
+            console.warn('Invalid signature image.');
         }
     }
 
     // Footer
-    drawRTLText(
-        `טופס נוצר אוטומטית על ידי מערכת SAN © ${new Date().getFullYear()}`,
-        12,
-    );
+    page.drawText(footerText, {
+        x: margin,
+        y: bottomMargin - footerFontSize - 5,
+        size: footerFontSize,
+        font,
+        color: rgb(0.5, 0.5, 0.5),
+    });
 
+    // Save PDF
     const pdfBytes = await pdfDoc.save();
     const now = new Date();
-    const fileNameDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-        now.getDate(),
-    ).padStart(
-        2,
-        '0',
-    )}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(
+    const fileNameDate = `${now.getFullYear()}-${String(
+        now.getMonth() + 1,
+    ).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(
+        now.getHours(),
+    ).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(
         now.getSeconds(),
     ).padStart(2, '0')}`;
-
     const fileName = `${data.clientName}_${fileNameDate}.pdf`;
-
     const pdfPath = path.join(appConfig.PDFFILE_WITH_PUBLIC_PATH, fileName);
-
     fs.writeFileSync(pdfPath, pdfBytes);
 
     const filePath = [
@@ -179,5 +237,5 @@ export async function pdfLibGenerator(
         .join('/')
         .replace(/\\/g, '/');
 
-    return { filePath: filePath, fileName: fileName };
+    return { fileName, filePath };
 }
