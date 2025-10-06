@@ -9,6 +9,7 @@ interface SendMailOptions {
     to: string | string[];
     subject: string;
     text?: string;
+    html?: string;
     attachments?: { filename: string; path: string }[];
 }
 
@@ -16,6 +17,7 @@ export async function sendMail({
     to,
     subject,
     text = '',
+    html = '',
     attachments,
 }: SendMailOptions) {
     const attachmentData =
@@ -75,6 +77,7 @@ export async function sendMail({
         from: appConfig.SENDGRID_FROM_EMAIL, // must be a verified sender in SendGrid
         subject,
         text,
+        html,
         attachments: attachmentData,
     };
 
