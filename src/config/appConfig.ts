@@ -18,7 +18,10 @@ interface AppConfig {
 }
 
 const appConfig: AppConfig = {
-    SERVER_URL: process.env.SERVER_URL || 'http://localhost:5000',
+    SERVER_URL:
+        (process.env.NODE_ENV === 'production'
+            ? process.env.LIVE_SERVER_URL
+            : process.env.LOCAL_SERVER_URL) || 'http://localhost:5000',
     PUBLIC_ASSET_PATH: process.env.PUBLIC_ASSET_PATH,
     UPLOAD_LIMIT: '1024mb',
     UPLOAD_SIZE_LIMIT: 5, //5MB
