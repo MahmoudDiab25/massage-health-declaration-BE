@@ -17,12 +17,14 @@ export async function sendMail({
 }: SendMailOptions) {
     const transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
+        port: 587,
+        secure: false,
         auth: {
             user: appConfig.NODEMAILER_EMAIL,
             pass: appConfig.NODEMAILER_WEBAPP_PASS, //this is webapp pass, not gmail pass (https://myaccount.google.com/ > Sign-in & Security > App Passwords)
         },
+        debug: true, // prints SMTP traffic
+        logger: true,
     });
 
     const mailOptions = {
