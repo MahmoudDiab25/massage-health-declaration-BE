@@ -110,8 +110,8 @@ export async function sendMail({
     // 1️⃣ Create transporter with Gmail SMTP
     const transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
+        port: 587,
+        secure: false, // STARTTLS
         auth: {
             user: appConfig.NODEMAILER_EMAIL, // your Gmail address
             pass: appConfig.NODEMAILER_WEBAPP_PASS, // Gmail App Password
