@@ -89,91 +89,164 @@
 //     }
 // }
 
-import fs from 'fs';
-import path from 'path';
-import nodemailer from 'nodemailer';
-import appConfig from '../config/appConfig'; // use env vars for Gmail credentials
+// import fs from 'fs';
+// import path from 'path';
+// import nodemailer from 'nodemailer';
+// import appConfig from '../config/appConfig'; // use env vars for Gmail credentials
+
+// interface SendMailOptions {
+//     to: string | string[];
+//     subject: string;
+//     text?: string;
+//     attachments?: { filename: string; path: string }[];
+// }
+
+// export async function sendMail({
+//     to,
+//     subject,
+//     text = '',
+//     attachments,
+// }: SendMailOptions) {
+//     // 1️⃣ Create transporter with Gmail SMTP
+//     const transporter = nodemailer.createTransport({
+//         host: 'smtp.gmail.com',
+//         port: 587,
+//         secure: false, // STARTTLS
+//         auth: {
+//             user: appConfig.NODEMAILER_EMAIL, // your Gmail address
+//             pass: appConfig.NODEMAILER_WEBAPP_PASS, // Gmail App Password
+//         },
+//     });
+
+//     // 2️⃣ Prepare attachments
+//     const attachmentData =
+//         attachments
+//             ?.map((file) => {
+//                 let localPath = file.path;
+
+//                 try {
+//                     // Handle URLs
+//                     if (localPath.startsWith('http')) {
+//                         const url = new URL(localPath);
+//                         const decodedPathname = decodeURIComponent(
+//                             url.pathname,
+//                         );
+//                         localPath = path.join(
+//                             process.cwd(),
+//                             'public',
+//                             decodedPathname,
+//                         );
+//                     } else {
+//                         localPath = path.resolve(localPath);
+//                     }
+
+//                     if (!fs.existsSync(localPath)) {
+//                         console.error('❌ File not found at:', localPath);
+//                         return null;
+//                     }
+
+//                     return {
+//                         filename: file.filename,
+//                         path: localPath,
+//                     };
+//                 } catch (err) {
+//                     console.error(
+//                         '⚠️ Error processing attachment:',
+//                         file.path,
+//                         err,
+//                     );
+//                     return null;
+//                 }
+//             })
+//             .filter((f): f is NonNullable<typeof f> => f !== null) ?? [];
+
+//     // 3️⃣ Send mail
+//     const mailOptions = {
+//         from: appConfig.NODEMAILER_EMAIL,
+//         to: Array.isArray(to) ? to.join(',') : to,
+//         subject,
+//         text,
+//         attachments: attachmentData,
+//     };
+
+//     try {
+//         await transporter.sendMail(mailOptions);
+//         console.log('✅ Email sent successfully via Gmail SMTP');
+//     } catch (error) {
+//         console.error('❌ Nodemailer Error:', error);
+//         throw error;
+//     }
+// }
 
 interface SendMailOptions {
-    to: string | string[];
+    to: string | string[]; // single email or array
     subject: string;
     text?: string;
     attachments?: { filename: string; path: string }[];
 }
 
+import { google } from 'googleapis';
+import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
+
 export async function sendMail({
     to,
     subject,
-    text = '',
+    text,
     attachments,
 }: SendMailOptions) {
-    // 1️⃣ Create transporter with Gmail SMTP
+    const oAuth2Client = new google.auth.OAuth2(
+        process.env.GMAIL_CLIENT_ID,
+        process.env.GMAIL_CLIENT_SECRET,
+    );
+
+    oAuth2Client.setCredentials({
+        refresh_token: process.env.GMAIL_REFRESH_TOKEN,
+    });
+    const accessToken = await oAuth2Client.getAccessToken();
+
+    // preprocess attachments
+    const attachmentData = attachments
+        ?.map((file) => {
+            let localPath = file.path.startsWith('http')
+                ? path.join(
+                      process.cwd(),
+                      'public',
+                      decodeURIComponent(new URL(file.path).pathname),
+                  )
+                : path.resolve(file.path);
+
+            if (!fs.existsSync(localPath)) {
+                console.error('File not found:', localPath);
+                return null;
+            }
+
+            return { filename: file.filename, path: localPath };
+        })
+        .filter((f) => f !== null);
+
     const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false, // STARTTLS
+        service: 'gmail',
         auth: {
-            user: appConfig.NODEMAILER_EMAIL, // your Gmail address
-            pass: appConfig.NODEMAILER_WEBAPP_PASS, // Gmail App Password
+            type: 'OAuth2',
+            user: process.env.GMAIL_EMAIL,
+            clientId: process.env.GMAIL_CLIENT_ID,
+            clientSecret: process.env.GMAIL_CLIENT_SECRET,
+            refreshToken: process.env.GMAIL_REFRESH_TOKEN,
+            accessToken: accessToken?.token,
         },
     });
 
-    // 2️⃣ Prepare attachments
-    const attachmentData =
-        attachments
-            ?.map((file) => {
-                let localPath = file.path;
-
-                try {
-                    // Handle URLs
-                    if (localPath.startsWith('http')) {
-                        const url = new URL(localPath);
-                        const decodedPathname = decodeURIComponent(
-                            url.pathname,
-                        );
-                        localPath = path.join(
-                            process.cwd(),
-                            'public',
-                            decodedPathname,
-                        );
-                    } else {
-                        localPath = path.resolve(localPath);
-                    }
-
-                    if (!fs.existsSync(localPath)) {
-                        console.error('❌ File not found at:', localPath);
-                        return null;
-                    }
-
-                    return {
-                        filename: file.filename,
-                        path: localPath,
-                    };
-                } catch (err) {
-                    console.error(
-                        '⚠️ Error processing attachment:',
-                        file.path,
-                        err,
-                    );
-                    return null;
-                }
-            })
-            .filter((f): f is NonNullable<typeof f> => f !== null) ?? [];
-
-    // 3️⃣ Send mail
     const mailOptions = {
-        from: appConfig.NODEMAILER_EMAIL,
+        from: process.env.GMAIL_EMAIL,
         to: Array.isArray(to) ? to.join(',') : to,
         subject,
         text,
         attachments: attachmentData,
     };
 
-    try {
-        await transporter.sendMail(mailOptions);
-        console.log('✅ Email sent successfully via Gmail SMTP');
-    } catch (error) {
-        console.error('❌ Nodemailer Error:', error);
-        throw error;
-    }
+    const result = await transporter.sendMail(mailOptions);
+    console.log('✅ Email sent:', result.messageId);
+    return result;
 }

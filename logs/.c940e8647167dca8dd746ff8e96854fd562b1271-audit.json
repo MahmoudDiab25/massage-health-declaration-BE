@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "C:\\Users\\Diab_\\work\\REACT\\san\\SAN-Backend\\logs\\.c940e8647167dca8dd746ff8e96854fd562b1271-audit.json",
+    "files": [
+        {
+            "date": 1759763993583,
+            "name": "C:\\Users\\Diab_\\work\\REACT\\san\\SAN-Backend\\logs\\2025-10-06-error.log",
+            "hash": "d6d2b8d056fd07efa5975f51b01858cae89f7af9761c07e8926b6fd29f0bcff1"
+        }
+    ],
+    "hashType": "sha256"
+}
