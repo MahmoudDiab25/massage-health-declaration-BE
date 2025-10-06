@@ -217,7 +217,9 @@ export async function pdfLibGenerator(
 
     // Save PDF
     const pdfBytes = await pdfDoc.save();
+
     const now = new Date();
+
     const fileNameDate = `${now.getFullYear()}-${String(
         now.getMonth() + 1,
     ).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(
@@ -225,8 +227,17 @@ export async function pdfLibGenerator(
     ).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(
         now.getSeconds(),
     ).padStart(2, '0')}`;
+
     const fileName = `${data.clientName}_${fileNameDate}.pdf`;
-    const pdfPath = path.join(appConfig.PDFFILE_WITH_PUBLIC_PATH, fileName);
+
+    const pdfDir = path.join(appConfig.PDFFILE_WITH_PUBLIC_PATH);
+
+    // Ensure the folder exists
+    if (!fs.existsSync(pdfDir)) {
+        fs.mkdirSync(pdfDir, { recursive: true });
+    }
+
+    const pdfPath = path.join(pdfDir, fileName);
     fs.writeFileSync(pdfPath, pdfBytes);
 
     const filePath = [
