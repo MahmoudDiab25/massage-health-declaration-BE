@@ -4,7 +4,6 @@ import { BaseController } from './BaseController';
 import { PDFFileService } from '../services/pdfFileService';
 import fs from 'fs';
 import path from 'path';
-import puppeteer from 'puppeteer';
 import appConfig from '../config/appConfig';
 import { sendMail } from '../mailer/mailer';
 import { launchChromium } from '../utils/chromiumHelper';
@@ -320,9 +319,21 @@ export class PDFFileController extends BaseController<PDFFileService> {
             const browser = await launchChromium();
             const page = await browser.newPage();
 
-            // your PDF or screenshot logic...
-            await page.setContent('<h1>Hello PDF</h1>');
-            const pdf = await page.pdf();
+            // ✅ Use your real HTML
+            await page.setContent(html, { waitUntil: 'networkidle' });
+
+            // ✅ Generate PDF directly to your file path
+            await page.pdf({
+                path: pdfPath,
+                format: 'A4',
+                printBackground: true,
+                margin: {
+                    top: '20mm',
+                    bottom: '20mm',
+                    left: '10mm',
+                    right: '10mm',
+                },
+            });
 
             await browser.close();
 
