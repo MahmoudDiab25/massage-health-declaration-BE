@@ -224,7 +224,7 @@ export async function sendMail({
 
             return { filename: file.filename, path: localPath };
         })
-        .filter((f) => f !== null);
+        .filter((f): f is NonNullable<typeof f> => f !== null); // ✅ type-safe
 
     const transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -242,7 +242,7 @@ export async function sendMail({
         from: process.env.GMAIL_EMAIL,
         to: Array.isArray(to) ? to.join(',') : to,
         subject,
-        text,
+        text: text || '',
         attachments: attachmentData,
     };
 
