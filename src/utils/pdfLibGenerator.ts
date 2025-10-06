@@ -53,13 +53,6 @@ export async function pdfLibGenerator(
     const footerTextLTR = `SAN © ${new Date().getFullYear()}`;
     const footerFontSize = 10;
 
-    // Calculate widths
-    const rtlWidth = font.widthOfTextAtSize(footerTextRTL, footerFontSize);
-    const ltrWidth = font.widthOfTextAtSize(footerTextLTR, footerFontSize);
-
-    // Total width
-    const totalWidth = rtlWidth + ltrWidth + 5; // 5 = space between RTL and LTR
-
     const addNewPage = () => {
         page = pdfDoc.addPage([pageWidth, pageHeight]);
         y = pageHeight - topMargin;
@@ -215,14 +208,25 @@ export async function pdfLibGenerator(
     }
 
     // Footer
-    page.drawText(`${footerTextRTL} ${footerTextLTR}`, {
-        x: margin,
+    // Hebrew (RTL) – right-aligned
+    const rtlWidth = font.widthOfTextAtSize(footerTextRTL, footerFontSize);
+    page.drawText(footerTextRTL, {
+        x: page.getWidth() - margin - rtlWidth,
         y: bottomMargin - footerFontSize - 5,
         size: footerFontSize,
-        font: font, // <-- use the embedded font here
+        font: font,
         color: rgb(0.5, 0.5, 0.5),
     });
 
+    // English (LTR) – immediately after Hebrew
+    const ltrWidth = font.widthOfTextAtSize(footerTextLTR, footerFontSize);
+    page.drawText(footerTextLTR, {
+        x: page.getWidth() - margin + 5, // small spacing after Hebrew
+        y: bottomMargin - footerFontSize - 5,
+        size: footerFontSize,
+        font: font,
+        color: rgb(0.5, 0.5, 0.5),
+    });
     // Save PDF
     const pdfBytes = await pdfDoc.save();
 
