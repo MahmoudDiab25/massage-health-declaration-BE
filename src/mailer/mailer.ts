@@ -109,7 +109,7 @@ export async function sendMail({
 }: SendMailOptions) {
     // 1️⃣ Create transporter with Gmail SMTP
     const transporter = nodemailer.createTransport({
-        service: 'smtp.gmail.com',
+        host: 'smtp.gmail.com',
         port: 465,
         secure: true,
         auth: {
