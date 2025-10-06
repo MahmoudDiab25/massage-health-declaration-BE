@@ -141,13 +141,7 @@ export async function pdfLibGenerator(
         { label: 'כתובת:', value: clientLocation },
         {
             label: 'תאריך לידה:',
-            value: clientBirthday
-                ? new Date(clientBirthday).toLocaleDateString('he-IL', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                  })
-                : '',
+            value: clientBirthday,
         },
     ];
 
