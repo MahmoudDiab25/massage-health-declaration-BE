@@ -262,6 +262,11 @@ export interface SendMailOptions {
     attachments?: { filename: string; path: string }[];
 }
 
+function encodeRFC2047Header(str: string) {
+    // Base64 encode UTF-8 string and wrap in RFC2047 format
+    return `=?UTF-8?B?${Buffer.from(str, 'utf8').toString('base64')}?=`;
+}
+
 function encodeAttachment(filePath: string, filename: string) {
     const content = fs.readFileSync(filePath).toString('base64');
     return `Content-Type: application/octet-stream; name="${filename}"
@@ -294,7 +299,7 @@ export async function sendMail({
     let message = '';
     message += `From: ${process.env.GMAIL_EMAIL}\r\n`;
     message += `To: ${toList}\r\n`;
-    message += `Subject: ${subject}\r\n`;
+    message += `Subject: ${encodeRFC2047Header(subject)}\r\n`;
     message += `MIME-Version: 1.0\r\n`;
     if (attachments && attachments.length > 0) {
         message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`;
