@@ -102,14 +102,15 @@ export class PDFFileController extends BaseController<PDFFileService> {
                 data.sendToSan === 'true'
                     ? ['san.ajami.hs@gmail.com']
                     : ['christinemassage.111@gmail.com'];
-            // await sendMail({
-            //     to: mailTo,
-            //     subject: `מילוי טופס הצהרת בריאות של ${data.clientName}`,
-            //     text: '',
-            //     attachments: [
-            //         { filename: encodedFileName, path: encodedFilePath },
-            //     ],
-            // });
+
+            await sendMail({
+                to: mailTo,
+                subject: `מילוי טופס הצהרת בריאות של ${data.clientName}`,
+                text: '',
+                attachments: [
+                    { filename: encodedFileName, path: encodedFilePath },
+                ],
+            });
 
             res.status(200).json({ url: encodedFilePath });
         } catch (error) {
