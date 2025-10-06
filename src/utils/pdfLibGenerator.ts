@@ -49,8 +49,16 @@ export async function pdfLibGenerator(
     let page = pdfDoc.addPage([pageWidth, pageHeight]);
     let y = pageHeight - topMargin;
 
-    const footerText = `טופס נוצר אוטומטית על ידי מערכת SAN © ${new Date().getFullYear()}`;
+    const footerTextRTL = 'טופס נוצר אוטומטית על ידי מערכת';
+    const footerTextLTR = `SAN © ${new Date().getFullYear()}`;
     const footerFontSize = 10;
+
+    // Calculate widths
+    const rtlWidth = font.widthOfTextAtSize(footerTextRTL, footerFontSize);
+    const ltrWidth = font.widthOfTextAtSize(footerTextLTR, footerFontSize);
+
+    // Total width
+    const totalWidth = rtlWidth + ltrWidth + 5; // 5 = space between RTL and LTR
 
     const addNewPage = () => {
         page = pdfDoc.addPage([pageWidth, pageHeight]);
@@ -114,7 +122,7 @@ export async function pdfLibGenerator(
     data.healthQuestions.forEach((q) => {
         drawText(`${q.label} ${q.value || ''}`, 12, true);
         if (q.extra) drawText(`- ${q.extra}`, 12, true);
-        y -= 5; // extra spacing between questions
+        y -= 10; // extra spacing between questions
     });
 
     y -= 10;
@@ -207,11 +215,11 @@ export async function pdfLibGenerator(
     }
 
     // Footer
-    page.drawText(footerText, {
+    page.drawText(`${footerTextRTL} ${footerTextLTR}`, {
         x: margin,
         y: bottomMargin - footerFontSize - 5,
         size: footerFontSize,
-        font,
+        font: font, // <-- use the embedded font here
         color: rgb(0.5, 0.5, 0.5),
     });
 

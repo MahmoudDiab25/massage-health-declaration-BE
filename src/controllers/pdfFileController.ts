@@ -97,9 +97,6 @@ export class PDFFileController extends BaseController<PDFFileService> {
             const encodedFilePath = encodeURI(filePath); // encodes Hebrew characters
             const encodedFileName = encodeURI(fileName); // encodes Hebrew characters
 
-            console.log({ encodedFilePath });
-            console.log({ encodedFileName });
-
             // ✅ Check if newPage/sendToSan key is true, then send to another email
             const mailTo =
                 data.sendToSan === 'true'
