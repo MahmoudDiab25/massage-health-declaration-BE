@@ -24,27 +24,9 @@ export class PDFFileController extends BaseController<PDFFileService> {
     ): Promise<void> {
         try {
             const data = req.body;
-            const now = new Date(Date.now()); // ✅ now is a Date object
-
-            const fileNameDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-                now.getDate(),
-            ).padStart(
-                2,
-                '0',
-            )}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(
-                now.getSeconds(),
-            ).padStart(2, '0')}`;
-            // const fileName = `${data.projectName}_${data.visitDate}.pdf`;
-            const fileName = `${data.clientName}_${fileNameDate}.pdf`;
-
-            // Generate PDF with Puppeteer
-            const pdfPath = path.join(
-                appConfig.PDFFILE_WITH_PUBLIC_PATH,
-                fileName,
-            );
 
             // Inside createFile:
-            const encodedUrl = await pdfLibGenerator({
+            const { fileName, filePath } = await pdfLibGenerator({
                 personalInfo: {
                     clientName: data.clientName,
                     clientId: data.clientId,
@@ -112,6 +94,9 @@ export class PDFFileController extends BaseController<PDFFileService> {
                 clientName: data.clientName,
             });
 
+            const encodedFilePath = encodeURI(filePath); // encodes Hebrew characters
+            const encodedFileName = encodeURI(fileName); // encodes Hebrew characters
+
             // ✅ Check if newPage/sendToSan key is true, then send to another email
             const mailTo =
                 data.sendToSan === 'true'
@@ -121,10 +106,12 @@ export class PDFFileController extends BaseController<PDFFileService> {
                 to: mailTo,
                 subject: `מילוי טופס הצהרת בריאות של ${data.clientName}`,
                 text: '',
-                attachments: [{ filename: fileName, path: pdfPath }],
+                attachments: [
+                    { filename: encodedFileName, path: encodedFilePath },
+                ],
             });
 
-            res.status(200).json({ url: encodedUrl });
+            res.status(200).json({ url: encodedFilePath });
         } catch (error) {
             next(error);
         }

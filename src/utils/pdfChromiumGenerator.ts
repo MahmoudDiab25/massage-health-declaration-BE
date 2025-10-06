@@ -4,10 +4,8 @@ import appConfig from '../config/appConfig';
 
 export async function pdfChromiumGenerator(neededData: {
     data: any;
-    fileName?: string;
-    pdfPath: string;
-}): Promise<string> {
-    const { data, fileName, pdfPath } = neededData;
+}): Promise<{ fileName: string; filePath: string }> {
+    const { data } = neededData;
     const html = `
                     <html lang="he" dir="rtl">
                     <head>
@@ -228,7 +226,7 @@ export async function pdfChromiumGenerator(neededData: {
   
 
                         <div class="section lastOne">
-                         <div class="field"><span class="label">אני מצהיר/ה כי האחריות להחליט באם כשרי הגופני מתאים לקבלת טיפול חלה עלי בלבד, כי אינני סובל/ת מבעיות רפואיות שעלולות לסכן אותי, ומאשר/ת כי המידע שמסרתי מלא ונכון ומוותר/ת על זכותי לתבוע את המטפל/ת בעתיד בהקשר לטיפול זה:<span class="value">${data.declaration === 'true' ? 'מאושר' : 'לא מאושר'}</span></span></div>
+                         <div class="field"><span class="label">אני מצהיר/ה כי האחריות להחליט באם כשרי הגופני מתאים לקבלת טיפול חלה עלי בלבד, כי אינני סובל/ת מבעיות רפואיות שעלולות לסכן אותי, ומאשר/ת כי המידע שמסרתי מלא ונכון ומוותר/ת על זכותי לתבוע את המטפל/ת בעתיד בהקשר לטיפול זה.:<span class="value">${data.declaration === 'true' ? 'מאושר' : 'לא מאושר'}</span></span></div>
                          <div class="signature">
                             <h2>חתימה</h2>
                             <img src="${data.signature}" alt="חתימה" />
@@ -241,6 +239,22 @@ export async function pdfChromiumGenerator(neededData: {
                     </body>
                     </html>
                 `;
+
+    const now = new Date(Date.now()); // ✅ now is a Date object
+
+    const fileNameDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+        now.getDate(),
+    ).padStart(
+        2,
+        '0',
+    )}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(
+        now.getSeconds(),
+    ).padStart(2, '0')}`;
+    // const fileName = `${data.projectName}_${data.visitDate}.pdf`;
+    const fileName = `${data.clientName}_${fileNameDate}.pdf`;
+
+    // Generate PDF with Puppeteer
+    const pdfPath = path.join(appConfig.PDFFILE_WITH_PUBLIC_PATH, fileName);
 
     // const browser = await puppeteer.launch({
     //     headless: true,
@@ -282,5 +296,5 @@ export async function pdfChromiumGenerator(neededData: {
         .replace(/\\/g, '/'); // just in case
     const encodedUrl = encodeURI(filePath); // encodes special characters
 
-    return encodedUrl;
+    return { filePath: encodedUrl, fileName: fileName };
 }

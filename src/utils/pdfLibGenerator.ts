@@ -1,4 +1,5 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
+import { PDFDocument, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import appConfig from '../config/appConfig';
@@ -27,22 +28,30 @@ interface PDFData {
     clientName: string;
 }
 
-export async function pdfLibGenerator(data: PDFData): Promise<string> {
+export async function pdfLibGenerator(
+    data: PDFData,
+): Promise<{ fileName: string; filePath: string }> {
     const pdfDoc = await PDFDocument.create();
 
+    // ✅ Register fontkit before embedding custom fonts
+    pdfDoc.registerFontkit(fontkit);
+
     // Embed a standard font (you can add a TTF font for Hebrew if needed)
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontBytes = fs.readFileSync(
+        path.join(__dirname, '../fonts/DavidLibre-Regular.ttf'),
+    );
+    const hebrewFont = await pdfDoc.embedFont(fontBytes);
 
     const page = pdfDoc.addPage([595, 842]); // A4
     let y = page.getHeight() - 50;
 
     const drawRTLText = (text: string, fontSize = 14) => {
-        const textWidth = font.widthOfTextAtSize(text, fontSize);
+        const textWidth = hebrewFont.widthOfTextAtSize(text, fontSize);
         page.drawText(text, {
             x: page.getWidth() - 40 - textWidth,
             y,
             size: fontSize,
-            font,
+            font: hebrewFont, // use embedded TTF
             color: rgb(0, 0, 0),
         });
         y -= fontSize + 5;
@@ -53,7 +62,7 @@ export async function pdfLibGenerator(data: PDFData): Promise<string> {
             x: 40,
             y,
             size: fontSize,
-            font,
+            font: hebrewFont, // use embedded TTF
             color: rgb(0, 0, 0),
         });
         y -= fontSize + 5;
@@ -115,7 +124,7 @@ export async function pdfLibGenerator(data: PDFData): Promise<string> {
 
     y -= 10;
     drawRTLText(
-        `אני מצהיר/ה כי האחריות להחליט באם כשרי הגופני מתאים לקבלת טיפול חלה עלי בלבד: ${data.declaration === 'true' ? 'מאושר' : 'לא מאושר'}`,
+        `אני מצהיר/ה כי האחריות להחליט באם כשרי הגופני מתאים לקבלת טיפול חלה עלי בלבד, כי אינני סובל/ת מבעיות רפואיות שעלולות לסכן אותי, ומאשר/ת כי המידע שמסרתי מלא ונכון ומוותר/ת על זכותי לתבוע את המטפל/ת בעתיד בהקשר לטיפול זה.: ${data.declaration === 'true' ? 'מאושר' : 'לא מאושר'}`,
     );
 
     // Signature
@@ -146,7 +155,18 @@ export async function pdfLibGenerator(data: PDFData): Promise<string> {
     );
 
     const pdfBytes = await pdfDoc.save();
-    const fileName = `${data.clientName}_${Date.now()}.pdf`;
+    const now = new Date();
+    const fileNameDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+        now.getDate(),
+    ).padStart(
+        2,
+        '0',
+    )}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(
+        now.getSeconds(),
+    ).padStart(2, '0')}`;
+
+    const fileName = `${data.clientName}_${fileNameDate}.pdf`;
+
     const pdfPath = path.join(appConfig.PDFFILE_WITH_PUBLIC_PATH, fileName);
 
     fs.writeFileSync(pdfPath, pdfBytes);
@@ -159,5 +179,5 @@ export async function pdfLibGenerator(data: PDFData): Promise<string> {
         .join('/')
         .replace(/\\/g, '/');
 
-    return filePath;
+    return { filePath: filePath, fileName: fileName };
 }
