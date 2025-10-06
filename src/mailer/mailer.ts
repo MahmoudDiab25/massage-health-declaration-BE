@@ -78,6 +78,11 @@ export async function sendMail({
         attachments: attachmentData,
     };
 
-    await sgMail.send(msg);
-    console.log('✅ Email sent successfully');
+    try {
+        await sgMail.send(msg);
+        console.log('✅ Email sent successfully');
+    } catch (error: any) {
+        console.error('❌ SendGrid Error:', error.response?.body || error);
+        throw error;
+    }
 }
