@@ -20,12 +20,21 @@ export async function sendMail({
 }: SendMailOptions) {
     const attachmentData =
         attachments?.map((file) => {
+            // If it's a full URL, strip the domain and use local file path instead
+            let localPath = file.path;
+
+            if (file.path.startsWith('http')) {
+                // e.g. https://massage-health-declaration-be.onrender.com/uploads/pdfFiles/xxx.pdf
+                const url = new URL(file.path);
+                localPath = path.join('public', url.pathname); // => public/uploads/pdfFiles/xxx.pdf
+            }
+
             const fileContent = fs
-                .readFileSync(path.resolve(file.path))
+                .readFileSync(path.resolve(localPath))
                 .toString('base64');
             return {
                 filename: file.filename,
-                type: 'application/pdf', // or detect dynamically
+                type: 'application/pdf',
                 content: fileContent,
                 disposition: 'attachment',
             };
