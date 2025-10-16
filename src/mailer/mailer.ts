@@ -262,13 +262,13 @@ export interface SendMailOptions {
     attachments?: { filename: string; path: string }[];
 }
 
-function encodeRFC2047Header(str: string) {
+function encodeRFC2047Header(str: string): string {
     // Base64 encode UTF-8 string and wrap in RFC2047 format
     return `=?UTF-8?B?${Buffer.from(str, 'utf8').toString('base64')}?=`;
 }
 
-function encodeAttachment(filePath: string, filename: string) {
-    const content = fs.readFileSync(filePath).toString('base64');
+function encodeAttachment(filePath: string, filename: string): string {
+    const content: string = fs.readFileSync(filePath).toString('base64');
     return `Content-Type: application/octet-stream; name="${filename}"
 Content-Transfer-Encoding: base64
 Content-Disposition: attachment; filename="${filename}"
@@ -281,20 +281,20 @@ export async function sendMail({
     subject,
     text,
     attachments,
-}: SendMailOptions) {
+}: SendMailOptions): Promise<any> {
     const oAuth2Client = new google.auth.OAuth2(
-        process.env.GMAIL_CLIENT_ID,
-        process.env.GMAIL_CLIENT_SECRET,
+        process.env.GMAIL_CLIENT_ID as string,
+        process.env.GMAIL_CLIENT_SECRET as string,
     );
 
     oAuth2Client.setCredentials({
-        refresh_token: process.env.GMAIL_REFRESH_TOKEN,
+        refresh_token: process.env.GMAIL_REFRESH_TOKEN as string,
     });
 
     const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
 
-    const toList = Array.isArray(to) ? to.join(', ') : to;
-    let boundary = '----=_Part_' + new Date().getTime();
+    const toList: string = Array.isArray(to) ? to.join(', ') : to;
+    const boundary: string = '----=_Part_' + new Date().getTime();
 
     let message = '';
     message += `From: ${process.env.GMAIL_EMAIL}\r\n`;
@@ -307,8 +307,8 @@ export async function sendMail({
         message += `Content-Type: text/plain; charset="UTF-8"\r\n\r\n`;
         message += `${text || ''}\r\n\r\n`;
 
-        for (let file of attachments) {
-            let filePath = file.path.startsWith('http')
+        for (const file of attachments) {
+            let filePath: string = file.path.startsWith('http')
                 ? path.join(
                       process.cwd(),
                       'public',
@@ -332,31 +332,33 @@ export async function sendMail({
         message += `${text || ''}`;
     }
 
-    const raw = Buffer.from(message)
+    const raw: string = Buffer.from(message)
         .toString('base64')
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=+$/, '');
 
-   
-
     try {
-  const res = await gmail.users.messages.send({
-        userId: 'me',
-        requestBody: {
-            raw,
-        },
-    });
+        const res = await gmail.users.messages.send({
+            userId: 'me',
+            requestBody: {
+                raw,
+            },
+        });
         console.log('✅ Email sent via Gmail API:', res.data.id);
-    return res.data;
-} catch (err) {
-  if (err.code === 400 && err.message.includes('invalid_grant')) {
-    console.error('Refresh token expired or revoked. Need reauthorization.');
-    // optionally trigger a re-auth flow or alert the admin
-  } else {
-    console.error(err);
-  }
-}
-
-    
+        return res.data;
+    } catch (err: any) {
+        if (
+            err.code === 400 &&
+            typeof err.message === 'string' &&
+            err.message.includes('invalid_grant')
+        ) {
+            console.error(
+                'Refresh token expired or revoked. Need reauthorization.',
+            );
+            // optionally trigger a re-auth flow or alert the admin
+        } else {
+            console.error(err);
+        }
+    }
 }

@@ -38,53 +38,71 @@ export class PDFFileController extends BaseController<PDFFileService> {
                     {
                         label: 'מחלת לב:',
                         value: data.heartIssues,
-                        extra: data.heartIssuesText,
+                        ...(data.heartIssuesText
+                            ? { extra: data.heartIssuesText }
+                            : {}),
                     },
                     {
                         label: 'בעיות עמוד שדרה:',
                         value: data.spineProblems,
-                        extra: data.spineProblemsText,
+                        ...(data.spineProblemsText
+                            ? { extra: data.spineProblemsText }
+                            : {}),
                     },
                     {
                         label: 'שברים/נקעים:',
                         value: data.fracturesOrSprains,
-                        extra: data.fracturesOrSprainsText,
+                        ...(data.fracturesOrSprainsText
+                            ? { extra: data.fracturesOrSprainsText }
+                            : {}),
                     },
                     {
                         label: 'שפעת/דלקת:',
                         value: data.fluOrFever,
-                        extra: data.fluOrFeverText,
+                        ...(data.fluOrFeverText
+                            ? { extra: data.fluOrFeverText }
+                            : {}),
                     },
                     { label: 'אפילפסיה:', value: data.epilepsy },
                     {
                         label: 'הריון:',
                         value: data.pregnant,
-                        extra: data.pregnantText,
+                        ...(data.pregnantText
+                            ? { extra: data.pregnantText }
+                            : {}),
                     },
                     {
                         label: 'ניתוח אחרון:',
                         value: data.recentSurgery,
-                        extra: data.recentSurgeryText,
+                        ...(data.recentSurgeryText
+                            ? { extra: data.recentSurgeryText }
+                            : {}),
                     },
                     {
                         label: 'תרופות כרוניות:',
                         value: data.chronicMedication,
-                        extra: data.chronicMedicationText,
+                        ...(data.chronicMedicationText
+                            ? { extra: data.chronicMedicationText }
+                            : {}),
                     },
                     {
                         label: 'בעיות גופניות אחרות:',
                         value: data.otherPhysicalProblems,
-                        extra: data.otherPhysicalProblemsText,
+                        ...(data.otherPhysicalProblemsText
+                            ? { extra: data.otherPhysicalProblemsText }
+                            : {}),
                     },
                     {
                         label: 'פטריות:',
                         value: data.fungus,
-                        extra: data.fungusText,
+                        ...(data.fungusText ? { extra: data.fungusText } : {}),
                     },
                     {
                         label: 'אזורים כואבים:',
                         value: data.painfulAreas,
-                        extra: data.painfulAreasText,
+                        ...(data.painfulAreasText
+                            ? { extra: data.painfulAreasText }
+                            : {}),
                     },
                 ],
                 treatmentIntensity: data.treatmentIntensity,

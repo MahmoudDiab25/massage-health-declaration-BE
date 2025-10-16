@@ -114,7 +114,8 @@ export async function pdfLibGenerator(
     // --- Health Questions ---
     data.healthQuestions.forEach((q) => {
         drawText(`${q.label} ${q.value || ''}`, 12, true);
-        if (q.extra) drawText(`- ${q.extra}`, 12, true);
+        if (q.extra && q.extra !== null && q.extra !== undefined)
+            drawText(`- ${q.extra}`, 12, true);
         y -= 10; // extra spacing between questions
     });
 
