@@ -338,13 +338,25 @@ export async function sendMail({
         .replace(/\//g, '_')
         .replace(/=+$/, '');
 
-    const res = await gmail.users.messages.send({
+   
+
+    try {
+  const res = await gmail.users.messages.send({
         userId: 'me',
         requestBody: {
             raw,
         },
     });
-
-    console.log('✅ Email sent via Gmail API:', res.data.id);
+        console.log('✅ Email sent via Gmail API:', res.data.id);
     return res.data;
+} catch (err) {
+  if (err.code === 400 && err.message.includes('invalid_grant')) {
+    console.error('Refresh token expired or revoked. Need reauthorization.');
+    // optionally trigger a re-auth flow or alert the admin
+  } else {
+    console.error(err);
+  }
+}
+
+    
 }
